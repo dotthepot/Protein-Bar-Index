@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROTEIN BAR INDEX</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f3ee;
+    --surface: #ffffff;
+    --border: #e0ddd6;
+    --border-strong: #c8c4bc;
+    --text: #1a1916;
+    --text-muted: #7a7670;
+    --text-faint: #b0ada8;
+    --accent: #d4f564;
+    --rank1: #f5c842;
+    --rank2: #d4d4d4;
+    --rank3: #c9906a;
+    --red: #e85d4a;
+    --green: #4a9e6b;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+    --drawer-width: 380px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .page-shell { transition: margin-right 0.35s cubic-bezier(0.4,0,0.2,1); }
+  .page-shell.drawer-open { margin-right: var(--drawer-width); }
+
+  /* HEADER */
+  .site-header {
+    border-bottom: 1.5px solid var(--border-strong);
+    padding: 28px 40px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { font-family: var(--sans); font-weight: 800; font-size: 22px; letter-spacing: -0.5px; line-height: 1; }
+  .logo span { background: var(--accent); padding: 2px 7px; margin-right: 4px; }
+  .logo-sub { font-family: var(--mono); font-weight: 300; font-size: 11px; color: var(--text-muted); margin-top: 5px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .header-meta { text-align: right; color: var(--text-muted); font-size: 11px; letter-spacing: 0.05em; }
+  .header-meta strong { color: var(--text); font-weight: 500; }
+
+  /* FILTERS */
+  .filters-bar { padding: 16px 40px; border-bottom: 1px solid var(--border); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; background: var(--bg); }
+  .filter-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-right: 4px; }
+  .filter-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .filter-btn { padding: 5px 12px; border: 1px solid var(--border-strong); background: var(--surface); font-family: var(--mono); font-size: 11px; cursor: pointer; color: var(--text-muted); transition: all 0.12s; letter-spacing: 0.03em; }
+  .filter-btn:hover { border-color: var(--text); color: var(--text); }
+  .filter-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .filter-divider { width: 1px; height: 20px; background: var(--border-strong); margin: 0 4px; }
+  .search-box { padding: 5px 12px; border: 1px solid var(--border-strong); background: var(--surface); font-family: var(--mono); font-size: 11px; color: var(--text); outline: none; width: 180px; transition: border-color 0.12s; }
+  .search-box:focus { border-color: var(--text); }
+  .search-box::placeholder { color: var(--text-faint); }
+
+  /* TABLE */
+  .table-wrapper { padding: 0 40px 60px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { border-bottom: 1.5px solid var(--border-strong); }
+  th { padding: 12px 10px; text-align: left; font-family: var(--mono); font-weight: 500; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); white-space: nowrap; cursor: pointer; user-select: none; transition: color 0.12s; }
+  th:hover { color: var(--text); }
+  th.sorted { color: var(--text); }
+  th:first-child { width: 44px; text-align: center; }
+  th:nth-child(2) { min-width: 160px; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; cursor: pointer; }
+  tbody tr:hover { background: rgba(0,0,0,0.03); }
+  tbody tr.active-row { background: var(--accent) !important; }
+  td { padding: 13px 10px; vertical-align: middle; white-space: nowrap; }
+
+  .rank { text-align: center; font-family: var(--sans); font-weight: 700; font-size: 13px; }
+  .rank-1 { color: var(--rank1); }
+  .rank-2 { color: var(--rank2); filter: brightness(0.65); }
+  .rank-3 { color: var(--rank3); }
+
+  .bar-name { font-family: var(--sans); font-weight: 600; font-size: 13px; letter-spacing: -0.2px; }
+  .bar-brand { font-family: var(--mono); font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+  .bar-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .tag { font-size: 9px; padding: 1px 6px; border: 1px solid var(--border); color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .tag.vegan { border-color: #4a9e6b; color: #4a9e6b; }
+  .tag.keto { border-color: #9b6fd4; color: #9b6fd4; }
+  .tag.gf { border-color: #e8934a; color: #e8934a; }
+
+  .macro-val { font-weight: 500; }
+  .macro-unit { font-size: 10px; color: var(--text-muted); margin-left: 1px; }
+  .protein-val { color: #2a6fad; }
+  .carb-val { color: #c17c2a; }
+  .fat-val { color: #9b6fd4; }
+
+  .score-cell { min-width: 90px; }
+  .score-num { font-weight: 500; font-size: 12px; margin-bottom: 3px; }
+  .score-bar-track { width: 70px; height: 3px; background: var(--border); }
+  .score-bar-fill { height: 100%; }
+  .score-bar-fill.excellent { background: var(--green); }
+  .score-bar-fill.good { background: #a3c94a; }
+  .score-bar-fill.avg { background: #e8b84a; }
+  .score-bar-fill.poor { background: var(--red); }
+
+  .composite { font-family: var(--sans); font-weight: 700; font-size: 15px; letter-spacing: -0.5px; }
+  .composite.s { color: var(--green); }
+  .composite.a { color: #7ab82a; }
+  .composite.b { color: #c4a020; }
+  .composite.c { color: #e07a30; }
+  .composite.d { color: var(--red); }
+
+  .price-val { font-weight: 500; }
+  .ppd { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+  .ppd.great { color: var(--green); }
+  .ppd.ok { color: #c4a020; }
+  .ppd.poor { color: var(--red); }
+
+  .sort-arrow { margin-left: 4px; opacity: 0.4; }
+  th.sorted .sort-arrow { opacity: 1; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 12px; display: none; }
+  .empty-state.visible { display: block; }
+
+  /* ===== DETAIL DRAWER ===== */
+  .detail-drawer {
+    position: fixed;
+    top: 0; right: 0;
+    width: var(--drawer-width);
+    height: 100vh;
+    background: var(--surface);
+    border-left: 1.5px solid var(--border-strong);
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .detail-drawer.open { transform: translateX(0); }
+
+  .drawer-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 28px; height: 28px;
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.12s;
+    z-index: 10;
+  }
+  .drawer-close:hover { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  .drawer-img-wrap {
+    width: 100%; height: 220px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden; flex-shrink: 0; position: relative;
+  }
+  .drawer-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; padding: 20px; }
+  .drawer-img-wrap .img-fallback { font-size: 64px; opacity: 0.3; }
+
+  .drawer-grade-badge {
+    position: absolute; top: 12px; left: 12px;
+    font-family: var(--sans); font-weight: 800; font-size: 16px;
+    padding: 4px 10px;
+    background: var(--text); color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .drawer-body { flex: 1; overflow-y: auto; padding: 20px 24px 30px; }
+
+  .drawer-title { font-family: var(--sans); font-weight: 800; font-size: 18px; letter-spacing: -0.5px; line-height: 1.2; padding-right: 36px; }
+  .drawer-brand { font-size: 11px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+  .drawer-tags { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+
+  .drawer-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  .drawer-blurb { font-size: 12px; line-height: 1.75; color: var(--text-muted); }
+
+  .drawer-section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); margin-bottom: 10px; font-weight: 500; }
+
+  .macro-chart { display: flex; gap: 6px; margin-bottom: 4px; }
+  .macro-block { flex: 1; padding: 10px 6px; border: 1px solid var(--border); text-align: center; }
+  .macro-block-val { font-family: var(--sans); font-weight: 700; font-size: 16px; letter-spacing: -0.5px; }
+  .macro-block-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-top: 2px; }
+  .macro-block.cal .macro-block-val { color: var(--text); }
+  .macro-block.pro .macro-block-val { color: #2a6fad; }
+  .macro-block.car .macro-block-val { color: #c17c2a; }
+  .macro-block.fat2 .macro-block-val { color: #9b6fd4; }
+  .macro-block.sug .macro-block-val { color: var(--red); }
+
+  .score-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .score-row-label { font-size: 11px; color: var(--text-muted); width: 100px; flex-shrink: 0; }
+  .score-row-track { flex: 1; height: 4px; background: var(--border); }
+  .score-row-fill { height: 100%; transition: width 0.5s ease; }
+  .score-row-val { font-size: 11px; font-weight: 500; width: 28px; text-align: right; }
+
+  .ingredients-list { font-size: 11px; line-height: 1.8; color: var(--text-muted); word-break: break-word; white-space: normal; }
+
+  .buy-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 16px;
+    border: 1.5px solid var(--text);
+    background: transparent;
+    font-family: var(--mono); font-size: 12px;
+    cursor: pointer; color: var(--text);
+    text-decoration: none;
+    transition: all 0.15s;
+    margin-bottom: 8px; width: 100%;
+  }
+  .buy-btn:hover { background: var(--text); color: var(--bg); }
+  .buy-btn span { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .buy-btn .arrow { font-size: 14px; }
+
+  .site-footer { border-top: 1px solid var(--border); padding: 20px 40px; font-size: 11px; color: var(--text-faint); display: flex; justify-content: space-between; }
+
+  @media (max-width: 768px) {
+    .site-header, .filters-bar, .table-wrapper { padding-left: 16px; padding-right: 16px; }
+    :root { --drawer-width: 100vw; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-shell" id="page-shell">
+
+<header class="site-header">
+  <div>
+    <div class="logo"><span>PBI</span> PROTEIN BAR INDEX</div>
+    <div class="logo-sub">Leaderboard &amp; Macro Intelligence — <span id="bar-count">25</span> bars ranked</div>
+  </div>
+  <div class="header-meta">
+    Sorted by <strong id="sort-label">Overall Score</strong><br>
+    Click any row for details
+  </div>
+</header>
+
+<div class="filters-bar">
+  <span class="filter-label">Brand</span>
+  <div class="filter-group">
+    <button class="filter-btn active" data-filter="brand" data-value="all">All</button>
+    <button class="filter-btn" data-filter="brand" data-value="Quest">Quest</button>
+    <button class="filter-btn" data-filter="brand" data-value="RXBar">RXBar</button>
+    <button class="filter-btn" data-filter="brand" data-value="Kind">Kind</button>
+    <button class="filter-btn" data-filter="brand" data-value="Clif">Clif</button>
+    <button class="filter-btn" data-filter="brand" data-value="Barebells">Barebells</button>
+    <button class="filter-btn" data-filter="brand" data-value="ONE">ONE</button>
+    <button class="filter-btn" data-filter="brand" data-value="Built">Built</button>
+    <button class="filter-btn" data-filter="brand" data-value="Grenade">Grenade</button>
+  </div>
+  <div class="filter-divider"></div>
+  <span class="filter-label">Flavour</span>
+  <div class="filter-group">
+    <button class="filter-btn active" data-filter="flavor" data-value="all">All</button>
+    <button class="filter-btn" data-filter="flavor" data-value="Chocolate">Choc</button>
+    <button class="filter-btn" data-filter="flavor" data-value="Nut">Nut</button>
+    <button class="filter-btn" data-filter="flavor" data-value="Fruit">Fruit</button>
+    <button class="filter-btn" data-filter="flavor" data-value="Vanilla">Vanilla</button>
+    <button class="filter-btn" data-filter="flavor" data-value="Peanut Butter">PB</button>
+  </div>
+  <div class="filter-divider"></div>
+  <span class="filter-label">Diet</span>
+  <div class="filter-group">
+    <button class="filter-btn active" data-filter="diet" data-value="all">All</button>
+    <button class="filter-btn" data-filter="diet" data-value="vegan">Vegan</button>
+    <button class="filter-btn" data-filter="diet" data-value="keto">Keto</button>
+    <button class="filter-btn" data-filter="diet" data-value="gf">Gluten-Free</button>
+  </div>
+  <div class="filter-divider"></div>
+  <input class="search-box" type="text" id="search-input" placeholder="Search bars...">
+</div>
+
+<div class="table-wrapper">
+  <table id="main-table">
+    <thead>
+      <tr>
+        <th data-col="rank">#<span class="sort-arrow">↑</span></th>
+        <th data-col="name">Bar <span class="sort-arrow">↕</span></th>
+        <th data-col="calories">Cals<span class="sort-arrow">↕</span></th>
+        <th data-col="protein">Protein<span class="sort-arrow">↕</span></th>
+        <th data-col="carbs">Carbs<span class="sort-arrow">↕</span></th>
+        <th data-col="fat">Fat<span class="sort-arrow">↕</span></th>
+        <th data-col="sugar">Sugar<span class="sort-arrow">↕</span></th>
+        <th data-col="rating">Rating<span class="sort-arrow">↕</span></th>
+        <th data-col="flavor_score">Flavour<span class="sort-arrow">↕</span></th>
+        <th data-col="ingredients_score">Ingredients<span class="sort-arrow">↕</span></th>
+        <th data-col="price">Price / PPD<span class="sort-arrow">↕</span></th>
+        <th data-col="score">Score<span class="sort-arrow">↕</span></th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+  <div class="empty-state" id="empty-state">No bars match your filters.</div>
+</div>
+
+<footer class="site-footer">
+  <span>Protein Bar Index · Data updated 2025</span>
+  <span>All values per bar serving. PPD = protein per dollar.</span>
+</footer>
+
+</div>
+
+<!-- DETAIL DRAWER -->
+<div class="detail-drawer" id="detail-drawer">
+  <button class="drawer-close" id="drawer-close">✕</button>
+  <div class="drawer-img-wrap">
+    <div class="drawer-grade-badge" id="d-grade"></div>
+    <img id="d-img" src="" alt="" onerror="this.style.display='none';document.getElementById('d-fallback').style.display='block'">
+    <div class="img-fallback" id="d-fallback" style="display:none">🍫</div>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-title" id="d-name"></div>
+    <div class="drawer-brand" id="d-brand"></div>
+    <div class="drawer-tags" id="d-tags"></div>
+    <hr class="drawer-divider">
+    <p class="drawer-blurb" id="d-blurb"></p>
+    <hr class="drawer-divider">
+    <div class="drawer-section-label">Macros per bar</div>
+    <div class="macro-chart">
+      <div class="macro-block cal"><div class="macro-block-val" id="d-cal">—</div><div class="macro-block-label">Cals</div></div>
+      <div class="macro-block pro"><div class="macro-block-val" id="d-pro">—</div><div class="macro-block-label">Protein</div></div>
+      <div class="macro-block car"><div class="macro-block-val" id="d-car">—</div><div class="macro-block-label">Carbs</div></div>
+      <div class="macro-block fat2"><div class="macro-block-val" id="d-fat">—</div><div class="macro-block-label">Fat</div></div>
+      <div class="macro-block sug"><div class="macro-block-val" id="d-sug">—</div><div class="macro-block-label">Sugar</div></div>
+    </div>
+    <hr class="drawer-divider">
+    <div class="drawer-section-label">Scores</div>
+    <div id="d-scores"></div>
+    <hr class="drawer-divider">
+    <div class="drawer-section-label">Ingredients</div>
+    <div class="ingredients-list" id="d-ingredients"></div>
+    <hr class="drawer-divider">
+    <div class="drawer-section-label">Buy Online</div>
+    <div id="d-buy-links"></div>
+  </div>
+</div>
+
+<script>
+const BARS = [
+  { name:"Double Chocolate Chunk", brand:"Quest", flavor_cat:"Chocolate", tags:["keto","gf"], calories:190, protein:21, carbs:22, fat:7, sugar:1, rating:9.1, flavor_score:9.2, ingredients_score:8.5, price:2.49, ppd:8.4, barcode:"888849014859", blurb:"Quest's classic double chocolate delivers on taste without the sugar guilt. Dense, chewy texture with a rich cocoa hit. A staple for a reason — high protein, low sugar, and actually enjoyable.", ingredients:"Protein Blend (Whey Protein Isolate, Milk Protein Isolate), Soluble Corn Fiber, Almonds, Water, Erythritol, Unsweetened Chocolate, Cocoa Butter, Cocoa, Natural Flavors, Sea Salt, Sunflower Lecithin, Stevia.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Quest+Double+Chocolate+Chunk+protein+bar"},{label:"Quest Nutrition",url:"https://www.questnutrition.com"}] },
+  { name:"Cookies & Cream", brand:"Quest", flavor_cat:"Vanilla", tags:["keto","gf"], calories:190, protein:21, carbs:21, fat:8, sugar:1, rating:9.3, flavor_score:9.5, ingredients_score:8.5, price:2.49, ppd:8.4, barcode:"888849014187", blurb:"Widely considered Quest's best flavour. The white chocolate base with cookie pieces nails the Oreo nostalgia. One of the top-rated protein bars on the market for a reason.", ingredients:"Protein Blend (Whey Protein Isolate, Milk Protein Isolate), Soluble Corn Fiber, Erythritol, Cocoa Butter, Natural Flavors, Palm Oil, Sea Salt, Sunflower Lecithin, Stevia.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Quest+Cookies+Cream+protein+bar"},{label:"Quest Nutrition",url:"https://www.questnutrition.com"}] },
+  { name:"Chocolate Sea Salt", brand:"Barebells", flavor_cat:"Chocolate", tags:[], calories:200, protein:20, carbs:20, fat:7, sugar:2, rating:9.5, flavor_score:9.7, ingredients_score:7.8, price:2.99, ppd:6.7, barcode:"7340011427033", blurb:"The bar that changed people's expectations of protein bars. Barebells Chocolate Sea Salt tastes like a candy bar — silky chocolate coating, caramel-like core, and a satisfying salt hit. Best-in-class flavour.", ingredients:"Protein Blend (Milk Protein, Whey Protein Isolate), Humectant (Glycerol), Dark Chocolate Coating (Cocoa Mass, Sweetener, Cocoa Butter, Emulsifier), Caramel, Almonds, Sea Salt, Natural Flavors.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Barebells+Chocolate+Sea+Salt"},{label:"Barebells",url:"https://www.barebells.com"}] },
+  { name:"Caramel Cashew", brand:"Barebells", flavor_cat:"Nut", tags:[], calories:200, protein:20, carbs:21, fat:7, sugar:2, rating:9.2, flavor_score:9.4, ingredients_score:7.8, price:2.99, ppd:6.7, barcode:"7340011427095", blurb:"Smooth caramel meets whole cashews in a genuinely indulgent format. The texture is outstanding — chewy, creamy, and satisfying. One of the best nut-flavour protein bars available.", ingredients:"Protein Blend (Milk Protein, Whey Protein Isolate), Humectant (Glycerol), Milk Chocolate Coating, Caramel, Cashews, Natural Flavors, Emulsifier (Soy Lecithin).", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Barebells+Caramel+Cashew"},{label:"Barebells",url:"https://www.barebells.com"}] },
+  { name:"Chocolate Chip Cookie Dough", brand:"Quest", flavor_cat:"Chocolate", tags:["keto","gf"], calories:190, protein:21, carbs:25, fat:8, sugar:1, rating:8.9, flavor_score:9.1, ingredients_score:8.5, price:2.49, ppd:8.4, barcode:"888849014149", blurb:"Soft, doughy texture with genuine chocolate chip pockets. Less dense than most Quest bars — closer to eating actual cookie dough. A crowd-pleaser that works as a snack or post-workout treat.", ingredients:"Protein Blend (Whey Protein Isolate, Milk Protein Isolate), Soluble Corn Fiber, Almonds, Erythritol, Water, Chocolate Chips, Natural Flavors, Sea Salt, Stevia.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Quest+Cookie+Dough+bar"},{label:"Quest Nutrition",url:"https://www.questnutrition.com"}] },
+  { name:"Birthday Cake", brand:"Quest", flavor_cat:"Vanilla", tags:["keto","gf"], calories:190, protein:21, carbs:22, fat:7, sugar:1, rating:8.7, flavor_score:8.8, ingredients_score:8.3, price:2.49, ppd:8.4, barcode:"888849014156", blurb:"Funfetti meets fitness. Sweet vanilla cake flavour with rainbow sprinkle pieces — surprisingly accurate to the real thing. A fun choice that doesn't sacrifice macros.", ingredients:"Protein Blend (Whey Protein Isolate, Milk Protein Isolate), Soluble Corn Fiber, Erythritol, Palm Oil, Natural Flavors, Sprinkles, Sea Salt, Stevia.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Quest+Birthday+Cake+bar"},{label:"Quest Nutrition",url:"https://www.questnutrition.com"}] },
+  { name:"Chocolate PB", brand:"RXBar", flavor_cat:"Peanut Butter", tags:["gf"], calories:210, protein:12, carbs:24, fat:9, sugar:13, rating:8.4, flavor_score:8.9, ingredients_score:9.8, price:2.79, ppd:4.3, barcode:"085239356036", blurb:"RXBar's ingredient transparency is unmatched — dates, egg whites, and nuts, that's it. The chocolate PB combo is rich and naturally sweet. Lower protein than gym-focused bars but unbeatable ingredient quality.", ingredients:"Dates, Egg Whites, Peanuts, Chocolate (Unsweetened Chocolate, Cocoa Butter), Peanut Butter, Sea Salt, Natural Flavors.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=RXBAR+Chocolate+Peanut+Butter"},{label:"RXBAR",url:"https://www.rxbar.com"}] },
+  { name:"Blueberry", brand:"RXBar", flavor_cat:"Fruit", tags:["gf"], calories:210, protein:12, carbs:25, fat:8, sugar:15, rating:7.8, flavor_score:7.9, ingredients_score:9.7, price:2.79, ppd:4.3, barcode:"085239356067", blurb:"Clean, fruity, and chewy. The blueberry flavour is real and bright without artificial sweetness. Best for those who want whole-food nutrition over pure macro optimisation.", ingredients:"Dates, Egg Whites, Almonds, Cashews, Blueberries, Natural Flavors.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=RXBAR+Blueberry"},{label:"RXBAR",url:"https://www.rxbar.com"}] },
+  { name:"Coconut Chocolate", brand:"RXBar", flavor_cat:"Chocolate", tags:["gf"], calories:210, protein:12, carbs:23, fat:9, sugar:14, rating:8.1, flavor_score:8.3, ingredients_score:9.6, price:2.79, ppd:4.3, barcode:"085239356111", blurb:"The toasted coconut adds texture and a tropical twist to the standard chocolate base. Wholesome, chewy, and satisfying with nothing artificial. A solid choice for clean eaters.", ingredients:"Dates, Egg Whites, Cashews, Chocolate (Unsweetened Chocolate, Cocoa Butter), Coconut, Natural Flavors.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=RXBAR+Coconut+Chocolate"},{label:"RXBAR",url:"https://www.rxbar.com"}] },
+  { name:"Chocolate Almond Sea Salt", brand:"Kind", flavor_cat:"Nut", tags:["gf"], calories:180, protein:6, carbs:20, fat:10, sugar:5, rating:7.9, flavor_score:8.5, ingredients_score:9.2, price:1.99, ppd:3.0, barcode:"602652184661", blurb:"Kind bars aren't protein powerhouses but they're genuinely snackable. This one nails the sweet-salty-crunchy trifecta with whole almonds, dark chocolate, and sea salt.", ingredients:"Almonds, Honey, Palm Kernel Oil, Dark Chocolate (Cocoa Butter, Sugar, Cocoa Mass), Sugar, Glucose Syrup, Sea Salt, Soy Lecithin.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Kind+Chocolate+Almond+Sea+Salt"},{label:"Kind Snacks",url:"https://www.kindsnacks.com"}] },
+  { name:"Caramel Almond & Sea Salt", brand:"Kind", flavor_cat:"Nut", tags:["gf"], calories:200, protein:6, carbs:25, fat:9, sugar:8, rating:7.6, flavor_score:8.2, ingredients_score:9.0, price:1.99, ppd:3.0, barcode:"602652279923", blurb:"Gooey caramel binds whole almonds together with a hit of sea salt on top. More of a snack bar than a protein bar, but the flavour and texture are genuinely great.", ingredients:"Almonds, Caramel (Sugar, Skim Milk, Butter, Cream, Salt), Honey, Palm Kernel Oil, Sea Salt, Soy Lecithin.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Kind+Caramel+Almond+Sea+Salt"},{label:"Kind Snacks",url:"https://www.kindsnacks.com"}] },
+  { name:"Dark Chocolate Nuts & Sea Salt", brand:"Kind", flavor_cat:"Chocolate", tags:["gf","vegan"], calories:180, protein:6, carbs:18, fat:11, sugar:5, rating:8.0, flavor_score:8.6, ingredients_score:9.1, price:1.99, ppd:3.0, barcode:"602652179483", blurb:"Kind's flagship and for good reason. Bold dark chocolate, mixed nuts, and sea salt — vegan, gluten-free, and made with whole ingredients. The lowest sugar of the Kind range.", ingredients:"Almonds, Peanuts, Walnuts, Dark Chocolate (Cocoa Mass, Sweetener, Cocoa Butter), Honey, Palm Kernel Oil, Sea Salt.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Kind+Dark+Chocolate+Nuts+Sea+Salt"},{label:"Kind Snacks",url:"https://www.kindsnacks.com"}] },
+  { name:"Whey Protein Bar Peanut Butter", brand:"ONE", flavor_cat:"Peanut Butter", tags:["gf"], calories:220, protein:20, carbs:24, fat:8, sugar:1, rating:8.3, flavor_score:8.4, ingredients_score:7.2, price:2.39, ppd:8.4, barcode:"851770006179", blurb:"ONE bars punch above their price point with 20g protein and only 1g sugar. The PB flavour is smooth and convincing. Slightly softer texture than Quest, and a bit more affordable.", ingredients:"Protein Blend (Whey Protein Isolate, Milk Protein Isolate), Soluble Corn Fiber, Peanuts, Erythritol, Water, Natural Flavors, Sea Salt, Stevia.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=ONE+protein+bar+peanut+butter"},{label:"ONE Brands",url:"https://www.onebrands.com"}] },
+  { name:"Birthday Cake", brand:"ONE", flavor_cat:"Vanilla", tags:["gf"], calories:220, protein:20, carbs:26, fat:7, sugar:1, rating:8.0, flavor_score:8.1, ingredients_score:7.2, price:2.39, ppd:8.4, barcode:"851770006056", blurb:"ONE's Birthday Cake is sweet and vanilla-forward. Slightly more indulgent in taste than Quest's version. Good macros, fun flavour, and great value for a 20g protein bar.", ingredients:"Protein Blend (Whey Protein Isolate, Milk Protein Isolate), Soluble Corn Fiber, Erythritol, Natural Flavors, Sprinkles, Palm Oil, Sea Salt, Stevia.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=ONE+protein+bar+birthday+cake"},{label:"ONE Brands",url:"https://www.onebrands.com"}] },
+  { name:"Chocolate Brownie", brand:"ONE", flavor_cat:"Chocolate", tags:["gf"], calories:210, protein:20, carbs:23, fat:7, sugar:1, rating:8.1, flavor_score:8.2, ingredients_score:7.3, price:2.39, ppd:8.4, barcode:"851770006100", blurb:"Fudgy, dense chocolate brownie taste with impressive macros. ONE's chocolate brownie sits right between Quest and Barebells in terms of taste vs macro trade-off.", ingredients:"Protein Blend (Whey Protein Isolate, Milk Protein Isolate), Soluble Corn Fiber, Erythritol, Cocoa, Natural Flavors, Sea Salt, Stevia.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=ONE+protein+bar+chocolate+brownie"},{label:"ONE Brands",url:"https://www.onebrands.com"}] },
+  { name:"Chocolate Chip", brand:"Clif", flavor_cat:"Chocolate", tags:["vegan"], calories:240, protein:10, carbs:43, fat:5, sugar:21, rating:7.5, flavor_score:8.0, ingredients_score:7.9, price:1.79, ppd:5.6, barcode:"722252200631", blurb:"The iconic energy bar. Clif bars aren't protein-optimised — they're fuel for endurance athletes. High carbs, moderate protein, and real ingredients. Best eaten before a long run, not as a desk snack.", ingredients:"Organic Rolled Oats, Organic Brown Rice Syrup, Soy Protein Isolate, Organic Cane Syrup, Organic Oat Fiber, Semisweet Chocolate Chips, Organic Soy Flour, Sea Salt.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Clif+Bar+Chocolate+Chip"},{label:"Clif Bar",url:"https://www.clifbar.com"}] },
+  { name:"Peanut Butter Banana", brand:"Clif", flavor_cat:"Peanut Butter", tags:["vegan"], calories:250, protein:10, carbs:43, fat:7, sugar:20, rating:7.4, flavor_score:8.1, ingredients_score:7.8, price:1.79, ppd:5.6, barcode:"722252200150", blurb:"A classic pairing done right. The banana and peanut butter flavours are distinct and natural-tasting. Still a high-carb energy bar at its core, but one of the most satisfying Clif options for taste.", ingredients:"Organic Rolled Oats, Organic Brown Rice Syrup, Peanut Butter, Organic Cane Syrup, Banana Puree, Soy Protein Isolate, Organic Oat Fiber, Sea Salt.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Clif+Bar+Peanut+Butter+Banana"},{label:"Clif Bar",url:"https://www.clifbar.com"}] },
+  { name:"Blueberry Crisp", brand:"Clif", flavor_cat:"Fruit", tags:["vegan"], calories:240, protein:9, carbs:45, fat:4, sugar:22, rating:7.1, flavor_score:7.6, ingredients_score:7.8, price:1.79, ppd:5.0, barcode:"722252260207", blurb:"Light, fruity, and crispy. The blueberry flavour is pleasant but subtle. Lower fat than other Clif bars, best suited as a pre-workout carb source.", ingredients:"Organic Rolled Oats, Organic Brown Rice Syrup, Soy Protein Isolate, Organic Cane Syrup, Dried Blueberries, Organic Oat Fiber, Organic Soy Flour, Sea Salt.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Clif+Bar+Blueberry+Crisp"},{label:"Clif Bar",url:"https://www.clifbar.com"}] },
+  { name:"Chocolate Chip Cookie Dough", brand:"Built", flavor_cat:"Chocolate", tags:[], calories:150, protein:17, carbs:17, fat:4, sugar:2, rating:8.6, flavor_score:8.7, ingredients_score:7.5, price:2.19, ppd:7.8, barcode:"850018352153", blurb:"Built bars are underrated. Incredibly soft and moist texture — more like a candy bar than a protein bar. High protein for the calorie count, and the cookie dough flavour is genuinely convincing.", ingredients:"Protein Blend (Whey Protein Isolate, Milk Protein Concentrate), Isomalto-oligosaccharides, Chocolate Chips, Erythritol, Cocoa Butter, Natural Flavors, Sea Salt, Stevia.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Built+bar+cookie+dough"},{label:"Built Bar",url:"https://www.builtbar.com"}] },
+  { name:"Peanut Butter & Jelly", brand:"Built", flavor_cat:"Peanut Butter", tags:[], calories:150, protein:17, carbs:17, fat:4, sugar:2, rating:8.3, flavor_score:8.5, ingredients_score:7.4, price:2.19, ppd:7.8, barcode:"850018352245", blurb:"Nostalgic, soft, and surprisingly accurate to a real PB&J. Built bars have a unique puffed texture that sets them apart. Great macro profile for the price.", ingredients:"Protein Blend (Whey Protein Isolate, Milk Protein Concentrate), Isomalto-oligosaccharides, Peanut Butter, Strawberry Jam, Erythritol, Natural Flavors, Sea Salt, Stevia.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Built+bar+peanut+butter+jelly"},{label:"Built Bar",url:"https://www.builtbar.com"}] },
+  { name:"Carrot Cake", brand:"Built", flavor_cat:"Vanilla", tags:[], calories:150, protein:17, carbs:16, fat:4, sugar:2, rating:8.1, flavor_score:8.2, ingredients_score:7.5, price:2.19, ppd:7.8, barcode:"850018352290", blurb:"A bold flavour choice that actually delivers. Warm spice notes with a cream cheese-like sweetness. Best for those tired of the usual chocolate and vanilla rotation.", ingredients:"Protein Blend (Whey Protein Isolate, Milk Protein Concentrate), Isomalto-oligosaccharides, Erythritol, Carrot Powder, Cinnamon, Natural Flavors, Sea Salt, Stevia.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Built+bar+carrot+cake"},{label:"Built Bar",url:"https://www.builtbar.com"}] },
+  { name:"Dark Chocolate Mint", brand:"Grenade", flavor_cat:"Chocolate", tags:[], calories:216, protein:23, carbs:20, fat:8, sugar:2, rating:8.9, flavor_score:9.0, ingredients_score:7.6, price:3.29, ppd:7.0, barcode:"5060327200494", blurb:"Grenade's highest-protein bar with a refreshing mint-chocolate combination. The dark chocolate coating and cool mint centre is reminiscent of an After Eight. Slightly pricier but 23g protein is hard to beat.", ingredients:"Protein Blend (Milk Protein, Whey Protein Isolate), Humectant (Glycerol), Dark Chocolate Coating, Peppermint Flavour, Erythritol, Natural Flavors, Sea Salt.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Grenade+Dark+Chocolate+Mint"},{label:"Grenade",url:"https://www.grenade.com"}] },
+  { name:"Fudge Brownie", brand:"Grenade", flavor_cat:"Chocolate", tags:[], calories:228, protein:22, carbs:22, fat:9, sugar:2, rating:8.7, flavor_score:8.9, ingredients_score:7.5, price:3.29, ppd:6.7, barcode:"5060327200388", blurb:"Dense, fudgy, and indulgent. Grenade's fudge brownie is one of the more dessert-like protein bars available. Rich chocolate with a slightly soft centre. A premium bar that justifies the price tag.", ingredients:"Protein Blend (Milk Protein, Whey Protein Isolate), Humectant (Glycerol), Milk Chocolate Coating, Cocoa, Erythritol, Natural Flavors, Sea Salt.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Grenade+Fudge+Brownie"},{label:"Grenade",url:"https://www.grenade.com"}] },
+  { name:"Banana Armour", brand:"Grenade", flavor_cat:"Fruit", tags:[], calories:212, protein:22, carbs:19, fat:8, sugar:2, rating:8.4, flavor_score:8.6, ingredients_score:7.4, price:3.29, ppd:6.7, barcode:"5060327200340", blurb:"A surprisingly great fruit-flavour protein bar. The banana is sweet and natural-tasting without being artificial. Lower carbs than most fruit bars and solid protein.", ingredients:"Protein Blend (Milk Protein, Whey Protein Isolate), Humectant (Glycerol), Milk Chocolate Coating, Banana Flavour, Erythritol, Natural Flavors.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Grenade+Banana+Armour"},{label:"Grenade",url:"https://www.grenade.com"}] },
+  { name:"Peanut Nutter", brand:"Grenade", flavor_cat:"Peanut Butter", tags:[], calories:222, protein:22, carbs:21, fat:9, sugar:2, rating:8.6, flavor_score:8.8, ingredients_score:7.5, price:3.29, ppd:6.7, barcode:"5060327200418", blurb:"Thick peanut butter filling encased in milk chocolate — deeply satisfying and rich. One of the best peanut butter protein bars on the market. Strong macros and bold flavour make this a top pick.", ingredients:"Protein Blend (Milk Protein, Whey Protein Isolate), Humectant (Glycerol), Milk Chocolate Coating, Peanut Butter, Erythritol, Natural Flavors, Sea Salt.", buy:[{label:"Amazon",url:"https://www.amazon.com/s?k=Grenade+Peanut+Nutter"},{label:"Grenade",url:"https://www.grenade.com"}] },
+];
+
+function computeScore(b) {
+  const pd = (b.protein / b.calories) * 100;
+  const sp = Math.max(0, 10 - b.sugar * 0.4);
+  const vs = Math.min(10, b.ppd / 1.2);
+  return (pd*0.8 + sp*0.5 + b.rating*0.9 + b.flavor_score*0.6 + b.ingredients_score*0.7 + vs*0.5) / 4.0;
+}
+function gradeScore(s) { return s>=9?'S':s>=8?'A':s>=7?'B':s>=6?'C':'D'; }
+function scoreClass(s) { return s>=9?'s':s>=8?'a':s>=7?'b':s>=6?'c':'d'; }
+function fillClass(v,m) { const p=v/m; return p>=0.85?'excellent':p>=0.65?'good':p>=0.45?'avg':'poor'; }
+function fillColor(c) { return {excellent:'#4a9e6b',good:'#a3c94a',avg:'#e8b84a',poor:'#e85d4a'}[c]; }
+
+const data = BARS.map(b => ({...b, score: computeScore(b)}));
+let sortCol='score', sortDir=-1, activeFilters={brand:'all',flavor:'all',diet:'all'}, searchQuery='', activeBar=null;
+
+function sortData(arr) {
+  return [...arr].sort((a,b) => {
+    let av=a[sortCol], bv=b[sortCol];
+    if (typeof av==='string') return sortDir*av.localeCompare(bv);
+    return sortDir*(bv-av);
+  });
+}
+function filterData(arr) {
+  return arr.filter(b => {
+    if (activeFilters.brand!=='all' && b.brand!==activeFilters.brand) return false;
+    if (activeFilters.flavor!=='all' && b.flavor_cat!==activeFilters.flavor) return false;
+    if (activeFilters.diet!=='all' && !b.tags.includes(activeFilters.diet)) return false;
+    if (searchQuery && !`${b.name} ${b.brand}`.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+}
+
+function renderTable() {
+  const filtered = filterData(sortData(data));
+  const tbody = document.getElementById('table-body');
+  const empty = document.getElementById('empty-state');
+  if (!filtered.length) { tbody.innerHTML=''; empty.classList.add('visible'); return; }
+  empty.classList.remove('visible');
+
+  tbody.innerHTML = filtered.map((b,i) => {
+    const rank=i+1, rc=rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'';
+    const tagHTML=b.tags.map(t=>`<span class="tag ${t}">${t==='gf'?'GF':t}</span>`).join('');
+    const sc=scoreClass(b.score);
+    const rF=fillClass(b.rating,10), fF=fillClass(b.flavor_score,10), iF=fillClass(b.ingredients_score,10);
+    const pC=b.ppd>=7?'great':b.ppd>=5?'ok':'poor';
+    const isActive=activeBar&&activeBar.name===b.name&&activeBar.brand===b.brand;
+    return `<tr data-idx="${data.indexOf(b)}" class="${isActive?'active-row':''}">
+      <td class="rank ${rc}">${rank<=3?['🥇','🥈','🥉'][rank-1]:rank}</td>
+      <td><div class="bar-name">${b.name}</div><div class="bar-brand">${b.brand} · <span style="color:var(--text-faint)">${b.flavor_cat}</span></div>${b.tags.length?`<div class="bar-tags">${tagHTML}</div>`:''}</td>
+      <td><span class="macro-val">${b.calories}</span><span class="macro-unit">kcal</span></td>
+      <td><span class="macro-val protein-val">${b.protein}</span><span class="macro-unit">g</span></td>
+      <td><span class="macro-val carb-val">${b.carbs}</span><span class="macro-unit">g</span></td>
+      <td><span class="macro-val fat-val">${b.fat}</span><span class="macro-unit">g</span></td>
+      <td><span class="macro-val" style="color:${b.sugar<=3?'var(--green)':b.sugar<=8?'var(--text)':'var(--red)'}">${b.sugar}</span><span class="macro-unit">g</span></td>
+      <td class="score-cell"><div class="score-num">${b.rating.toFixed(1)}</div><div class="score-bar-track"><div class="score-bar-fill ${rF}" style="width:${b.rating*10}%"></div></div></td>
+      <td class="score-cell"><div class="score-num">${b.flavor_score.toFixed(1)}</div><div class="score-bar-track"><div class="score-bar-fill ${fF}" style="width:${b.flavor_score*10}%"></div></div></td>
+      <td class="score-cell"><div class="score-num">${b.ingredients_score.toFixed(1)}</div><div class="score-bar-track"><div class="score-bar-fill ${iF}" style="width:${b.ingredients_score*10}%"></div></div></td>
+      <td><div class="price-val">$${b.price.toFixed(2)}</div><div class="ppd ${pC}">${b.ppd.toFixed(1)}g/$</div></td>
+      <td><span class="composite ${sc}">${gradeScore(b.score)} ${b.score.toFixed(1)}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('tbody tr[data-idx]').forEach(row => {
+    row.addEventListener('click', () => openDrawer(data[parseInt(row.dataset.idx)]));
+  });
+}
+
+
+function brandEmoji(brand) {
+  const map = {Quest:'💪',Barebells:'🍫',RXBar:'🥊',Kind:'🌰',Clif:'⚡',ONE:'1️⃣',Built:'🏗️',Grenade:'💣'};
+  return map[brand] || '🍫';
+}
+
+function openDrawer(b) {
+  activeBar = b;
+  renderTable();
+
+  const sc = scoreClass(b.score);
+  document.getElementById('d-grade').textContent = `${gradeScore(b.score)} ${b.score.toFixed(1)}`;
+  document.getElementById('d-grade').className = 'drawer-grade-badge composite ' + sc;
+
+  const img = document.getElementById('d-img'), fallback = document.getElementById('d-fallback');
+  img.style.display = 'none'; fallback.style.display = 'block'; fallback.textContent = '⏳';
+  img.alt = `${b.brand} ${b.name}`;
+  fetch(`https://world.openfoodfacts.org/api/v0/product/${b.barcode}.json?fields=image_front_url,image_url`)
+    .then(r => r.json())
+    .then(data => {
+      const url = data?.product?.image_front_url || data?.product?.image_url;
+      if (url) {
+        img.onload = () => { img.style.display = 'block'; fallback.style.display = 'none'; };
+        img.onerror = () => { fallback.textContent = brandEmoji(b.brand); };
+        img.src = url;
+      } else { fallback.textContent = brandEmoji(b.brand); }
+    })
+    .catch(() => { fallback.textContent = brandEmoji(b.brand); });
+
+  document.getElementById('d-name').textContent = b.name;
+  document.getElementById('d-brand').textContent = `${b.brand} · ${b.flavor_cat}`;
+  document.getElementById('d-tags').innerHTML = b.tags.map(t=>`<span class="tag ${t}">${t==='gf'?'Gluten-Free':t==='vegan'?'Vegan':'Keto'}</span>`).join('');
+  document.getElementById('d-blurb').textContent = b.blurb;
+  document.getElementById('d-cal').textContent = b.calories;
+  document.getElementById('d-pro').textContent = b.protein+'g';
+  document.getElementById('d-car').textContent = b.carbs+'g';
+  document.getElementById('d-fat').textContent = b.fat+'g';
+  document.getElementById('d-sug').textContent = b.sugar+'g';
+
+  const scores = [{label:'Overall Rating',val:b.rating},{label:'Flavour',val:b.flavor_score},{label:'Ingredients',val:b.ingredients_score},{label:'Value (PPD)',val:Math.min(10,b.ppd)}];
+  document.getElementById('d-scores').innerHTML = scores.map(s => {
+    const c=fillClass(s.val,10);
+    return `<div class="score-row"><div class="score-row-label">${s.label}</div><div class="score-row-track"><div class="score-row-fill" style="width:${s.val*10}%;background:${fillColor(c)}"></div></div><div class="score-row-val">${s.val.toFixed(1)}</div></div>`;
+  }).join('');
+
+  document.getElementById('d-ingredients').textContent = b.ingredients;
+  document.getElementById('d-buy-links').innerHTML = b.buy.map(l=>`<a class="buy-btn" href="${l.url}" target="_blank" rel="noopener"><span>${l.label}</span><span class="arrow">→</span></a>`).join('');
+
+  document.getElementById('detail-drawer').classList.add('open');
+  document.getElementById('page-shell').classList.add('drawer-open');
+
+  // Scroll drawer body to top
+  document.querySelector('.drawer-body').scrollTop = 0;
+}
+
+function closeDrawer() {
+  activeBar = null;
+  document.getElementById('detail-drawer').classList.remove('open');
+  document.getElementById('page-shell').classList.remove('drawer-open');
+  renderTable();
+}
+
+document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeDrawer(); });
+
+document.querySelectorAll('th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (sortCol===col) sortDir*=-1; else { sortCol=col; sortDir=col==='name'?1:-1; }
+    document.querySelectorAll('th[data-col]').forEach(t => { t.classList.remove('sorted'); t.querySelector('.sort-arrow').textContent='↕'; });
+    th.classList.add('sorted');
+    th.querySelector('.sort-arrow').textContent = sortDir===-1?'↓':'↑';
+    document.getElementById('sort-label').textContent = th.textContent.replace(/[↕↑↓]/g,'').trim();
+    renderTable();
+  });
+});
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const ft=btn.dataset.filter, v=btn.dataset.value;
+    activeFilters[ft]=v;
+    document.querySelectorAll(`.filter-btn[data-filter="${ft}"]`).forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTable();
+  });
+});
+
+document.getElementById('search-input').addEventListener('input', e => { searchQuery=e.target.value; renderTable(); });
+
+document.querySelector('th[data-col="score"]').classList.add('sorted');
+document.querySelector('th[data-col="score"] .sort-arrow').textContent='↓';
+renderTable();
+</script>
+</body>
+</html>
